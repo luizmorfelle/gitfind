@@ -1,0 +1,32 @@
+import { GitHubRepo } from "../models/githubRepository";
+
+export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {repos.map((repo) => (
+        <a
+          key={repo.id}
+          href={repo.html_url ?? ''}
+          target="_blank"
+          className="bg-[#252A34] border border-[#08D9D6] rounded-lg p-3 hover:bg-[#303548] transition"
+        >
+          <h3 className="text-[#08D9D6] font-bold">{repo.name}</h3>
+          <p className="text-sm text-gray-400">{repo.description || "Sem descrição"}</p>
+          <div className="flex gap-2 mt-2">
+            {repo.language && (
+              <span className="text-xs bg-[#08D9D6] text-black px-2 py-1 rounded-full">
+                {repo.language}
+              </span>
+            )}
+            <span className="text-xs bg-gray-700 text-white px-2 py-1 rounded-full">
+              ⭐ {repo.stargazers_count}
+            </span>
+            <span className="text-xs bg-gray-700 text-white px-2 py-1 rounded-full">
+              🍴 {repo.forks_count}
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+  );
+}
