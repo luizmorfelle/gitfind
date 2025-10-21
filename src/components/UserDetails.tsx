@@ -1,7 +1,5 @@
 "use client";
 
-import { GitHubDetails } from "../models/githubDetails";
-import { GitHubRepo } from "../models/githubRepository";
 import { GitHubUser } from "../models/githubUser";
 
 export default function UserDetails({user}: {user: GitHubUser}) {
@@ -15,8 +13,8 @@ export default function UserDetails({user}: {user: GitHubUser}) {
         />
         <h2 className="text-xl font-bold">{user.name || user.login}</h2>
         <p className="text-gray-500">@{user.login}</p>
-        {user.bio && <p className="mt-2 text-sm text-gray-700">{user.bio}</p>}
-        <div className="flex gap-4 mt-3 text-sm text-gray-600">
+        {user.bio && <p className="mt-2 text-sm text-white">{user.bio}</p>}
+        <div className="flex gap-4 mt-3 text-sm text-white">
           <span>👥 {user.followers} seguidores</span>
           <span>➡️ {user.following} seguindo</span>
         </div>

@@ -46,7 +46,7 @@ export default function UserCard({ user }: { user: GitHubUser }) {
   if (!details) return <p>Carregando detalhes...</p>;
 
   return (
-    <div className="flex flex-col gap-4 bg-[#2E3240] rounded-xl p-4 shadow-lg">
+    <div className="flex flex-col gap-4 bg-[#2E3240] rounded-xl p-4 shadow-lg h-full">
       <UserDetails user={details} />
       <RepoGrid repos={repos} />
     </div>

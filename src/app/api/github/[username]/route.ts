@@ -1,12 +1,10 @@
 import { getOctokit } from "@/src/lib/github";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { username: string } }
+  req: NextRequest
 ) {
-  const octokit = getOctokit();
-  const { username } = params;
+  const username = req.nextUrl.searchParams.get("username") || "";
 
   try {
     const octokit = getOctokit();

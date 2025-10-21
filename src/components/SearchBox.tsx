@@ -33,7 +33,7 @@ export default function SearchBox({
   const searchSelectUser = async (username: string) => {
     const octokit = getOctokit();
     const response = await octokit.request("GET /users/{username}", {
-      username
+      username,
     });
     const user = response.data as GitHubUser;
     onSelect(user);
@@ -88,7 +88,7 @@ export default function SearchBox({
               ),
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton  onClick={() => setQuery("")}>
+                  <IconButton onClick={() => setQuery("")}>
                     <FontAwesomeIcon
                       icon={faTimes}
                       style={{ color: COLORS.primary }}
@@ -99,14 +99,15 @@ export default function SearchBox({
             },
           }}
           sx={{
-            borderRadius: 1,
+            input: { color: "white" },
+            "& .MuiOutlinedInput-root": {},
           }}
         />
       </div>
 
       <Paper
-        className="max-h-80 overflow-auto"
-        style={{ background: "transparent" }}
+        className="h-full overflow-y-auto overflow-x-hidden"
+        style={{ background: COLORS.bg, marginTop: 8 }}
         elevation={0}
       >
         {loading ? (
@@ -126,14 +127,27 @@ export default function SearchBox({
             {results.map((u) => (
               <ListItem
                 key={u.id}
-                onClick={() => searchSelectUser(u.login ?? '')}
-                className="hover:bg-zinc-700 rounded-lg m-1"
+                onClick={() => searchSelectUser(u.login ?? "")}
+                className="hover:bg-zinc-700 bg-[#2E3240] rounded-lg m-1 text-white font-bold"
                 style={{ cursor: "pointer" }}
               >
                 <ListItemAvatar>
-                  <Avatar src={u.avatar_url ?? ''} alt={u.login ?? ''} />
+                  <Avatar src={u.avatar_url ?? ""} alt={u.login ?? ""} />
                 </ListItemAvatar>
-                <ListItemText primary={u.login} secondary={u.html_url} />
+                <ListItemText
+                  primary={u.login}
+                  secondary={u.html_url}
+                  sx={{
+                    "& .MuiListItemText-primary": {
+                      color: COLORS.text,
+                      fontWeight: 600,
+                    },
+                    "& .MuiListItemText-secondary": {
+                      color: COLORS.text,
+                      fontSize: "0.85rem",
+                    },
+                  }}
+                />
               </ListItem>
             ))}
           </List>

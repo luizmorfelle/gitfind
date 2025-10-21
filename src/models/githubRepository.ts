@@ -138,7 +138,7 @@ export class GitHubRepo {
     this.notifications_url = data.notifications_url ?? '';
     this.open_issues = data.open_issues ?? 0;
     this.open_issues_count = data.open_issues_count ?? 0;
-    this.owner = data.owner ? new GitHubUser(data.owner) : new GitHubUser({});
+    this.owner = data.owner;
     this.private = data.private ?? false;
     this.pulls_url = data.pulls_url ?? '';
     this.pushed_at = data.pushed_at ?? '';
