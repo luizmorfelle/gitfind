@@ -8,7 +8,7 @@ export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
           key={repo.id}
           href={repo.html_url ?? ''}
           target="_blank"
-          className="bg-[#252A34] border border-[#08D9D6] rounded-lg p-3 hover:bg-[#303548] transition flex flex-col gap-2"
+          className="bg-[#252A34] max-h-[20vh] border border-[#08D9D6] rounded-lg p-3 hover:bg-[#303548] transition flex flex-col gap-2"
         >
           <h3 className="text-[#08D9D6] font-bold">{repo.name}</h3>
           <p className="text-sm text-white">{repo.description || "Sem descrição"}</p>

@@ -23,12 +23,13 @@ import { GitHubUserSearch } from "../models/githubUserSearch";
 
 export default function SearchBox({
   onSelect,
+  onLoadingChange,
 }: {
   onSelect: (user: GitHubUser) => void;
+  onLoadingChange: (loading: boolean) => void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GitHubUserSearch[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const searchSelectUser = async (username: string) => {
     const octokit = getOctokit();
@@ -36,6 +37,8 @@ export default function SearchBox({
       username,
     });
     const user = response.data as GitHubUser;
+    setResults([]);
+    setQuery("");
     onSelect(user);
   };
 
@@ -50,7 +53,7 @@ export default function SearchBox({
       const cached = getCache(cacheKey);
       if (cached) return setResults(cached);
 
-      setLoading(true);
+      onLoadingChange(true);
       const octokit = getOctokit();
       const response = await octokit.request("GET /search/users", {
         q: `${query} in:login`,
@@ -59,15 +62,15 @@ export default function SearchBox({
       const data = response.data.items as GitHubUserSearch[];
       setResults(data);
       setCache(cacheKey, data);
-      setLoading(false);
+      onLoadingChange(false);
     }, 500);
 
     return () => clearTimeout(handler);
   }, [query]);
 
   return (
-    <div className="w-full">
-      <div className="">
+    <div className="">
+      <div className="sm:relative absolute w-full p-4">
         <TextField
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -106,52 +109,38 @@ export default function SearchBox({
       </div>
 
       <Paper
-        className="h-full overflow-y-auto overflow-x-hidden"
-        style={{ background: COLORS.bg, marginTop: 8 }}
+        className=" sm:h-full overflow-y-auto overflow-x-hidden sm:relative absolute sm:top-0 top-16 px-4 w-full"
+        style={{ background: COLORS.bg }}
         elevation={0}
       >
-        {loading ? (
-          <div className="space-y-2 p-2">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-2 rounded">
-                <Skeleton variant="circular" width={40} height={40} />
-                <div className="flex-1">
-                  <Skeleton width="50%" />
-                  <Skeleton width="30%" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <List>
-            {results.map((u) => (
-              <ListItem
-                key={u.id}
-                onClick={() => searchSelectUser(u.login ?? "")}
-                className="hover:bg-zinc-700 bg-[#2E3240] rounded-lg m-1 text-white font-bold"
-                style={{ cursor: "pointer" }}
-              >
-                <ListItemAvatar>
-                  <Avatar src={u.avatar_url ?? ""} alt={u.login ?? ""} />
-                </ListItemAvatar>
-                <ListItemText
-                  primary={u.login}
-                  secondary={u.html_url}
-                  sx={{
-                    "& .MuiListItemText-primary": {
-                      color: COLORS.text,
-                      fontWeight: 600,
-                    },
-                    "& .MuiListItemText-secondary": {
-                      color: COLORS.text,
-                      fontSize: "0.85rem",
-                    },
-                  }}
-                />
-              </ListItem>
-            ))}
-          </List>
-        )}
+        <List>
+          {results.map((u) => (
+            <ListItem
+              key={u.id}
+              onClick={() => searchSelectUser(u.login ?? "")}
+              className="hover:bg-zinc-700 bg-[#2E3240] rounded-lg m-1 text-white font-bold"
+              style={{ cursor: "pointer" }}
+            >
+              <ListItemAvatar>
+                <Avatar src={u.avatar_url ?? ""} alt={u.login ?? ""} />
+              </ListItemAvatar>
+              <ListItemText
+                primary={u.login}
+                secondary={u.html_url}
+                sx={{
+                  "& .MuiListItemText-primary": {
+                    color: COLORS.text,
+                    fontWeight: 600,
+                  },
+                  "& .MuiListItemText-secondary": {
+                    color: COLORS.text,
+                    fontSize: "0.85rem",
+                  },
+                }}
+              />
+            </ListItem>
+          ))}
+        </List>
       </Paper>
     </div>
   );
