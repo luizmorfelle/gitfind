@@ -150,9 +150,9 @@ export default function UserCard({
                     <ContributionStats data={data.contributions} />
                   </div>
                 )}
-                <ActivityFeed activity={data.activity} />
               </div>
             </div>
+            <ActivityFeed activity={data.activity} />
             {data.profileReadme && (
               <ProfileReadme login={data.user.login} markdown={data.profileReadme} />
             )}

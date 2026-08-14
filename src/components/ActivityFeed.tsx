@@ -12,9 +12,9 @@ function timeAgo(iso: string): string {
 export default function ActivityFeed({ activity }: { activity: ActivityEntry[] }) {
   if (activity.length === 0) return null;
   return (
-    <section>
+    <section className="mt-6">
       <p className="mb-2 text-xs text-muted">recent activity</p>
-      <div className="rounded-lg border border-border bg-bg p-3 font-mono text-[13px]">
+      <div className="grid gap-x-8 rounded-lg border border-border bg-bg p-3 font-mono text-[13px] sm:grid-cols-2">
         {activity.map((a, i) => (
           <p key={i} className="truncate py-0.5 text-muted">
             <span className="text-accent">&gt;</span> {a.verb}{" "}
