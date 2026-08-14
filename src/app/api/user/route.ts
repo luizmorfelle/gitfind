@@ -63,6 +63,57 @@ async function fetchContributions(octokit: Octo, login: string) {
   }
 }
 
+type GhEvent = {
+  type: string | null;
+  repo?: { name: string };
+  payload?: { size?: number; action?: string; ref_type?: string };
+  created_at?: string | null;
+};
+
+// Turn the public event stream into terminal-log-style activity lines.
+function describeEvent(e: GhEvent): { verb: string; repo: string; at: string } | null {
+  const repo = e.repo?.name ?? "";
+  const at = e.created_at ?? "";
+  const p = e.payload ?? {};
+  switch (e.type) {
+    case "PushEvent":
+      return { verb: `pushed ${p.size ?? 1} commit${(p.size ?? 1) === 1 ? "" : "s"} to`, repo, at };
+    case "WatchEvent":
+      return { verb: "starred", repo, at };
+    case "ForkEvent":
+      return { verb: "forked", repo, at };
+    case "CreateEvent":
+      return { verb: `created ${p.ref_type ?? "repo"}`, repo, at };
+    case "PullRequestEvent":
+      return { verb: `${p.action ?? "updated"} PR in`, repo, at };
+    case "IssuesEvent":
+      return { verb: `${p.action ?? "updated"} issue in`, repo, at };
+    case "IssueCommentEvent":
+      return { verb: "commented on", repo, at };
+    case "ReleaseEvent":
+      return { verb: "released", repo, at };
+    case "PublicEvent":
+      return { verb: "open-sourced", repo, at };
+    default:
+      return null;
+  }
+}
+
+async function fetchActivity(octokit: Octo, login: string) {
+  try {
+    const res = await octokit.request("GET /users/{username}/events/public", {
+      username: login,
+      per_page: 30,
+    });
+    return (res.data as GhEvent[])
+      .map(describeEvent)
+      .filter((x): x is { verb: string; repo: string; at: string } => x !== null)
+      .slice(0, 12);
+  } catch {
+    return [];
+  }
+}
+
 export async function GET(req: NextRequest) {
   const login = req.nextUrl.searchParams.get("login")?.trim() ?? "";
   if (!login) {
@@ -71,7 +122,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const octokit = getOctokit();
-    const [userRes, reposRes, profileReadme, contributions] = await Promise.all([
+    const [userRes, reposRes, profileReadme, contributions, activity] = await Promise.all([
       octokit.request("GET /users/{username}", { username: login }),
       // ponytail: first 100 repos only; totalStars/topLanguage/LanguageBar are
       // computed over this page, so heavy accounts under-report. Paginate if it matters.
@@ -82,12 +133,14 @@ export async function GET(req: NextRequest) {
       }),
       fetchProfileReadme(octokit, login),
       fetchContributions(octokit, login),
+      fetchActivity(octokit, login),
     ]);
     return NextResponse.json({
       user: userRes.data,
       repos: reposRes.data,
       profileReadme,
       contributions,
+      activity,
     });
   } catch (error) {
     const status = (error as { status?: number }).status ?? 500;

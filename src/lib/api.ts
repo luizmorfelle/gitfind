@@ -13,11 +13,18 @@ export interface Contributions {
   weeks: ContributionDay[][];
 }
 
+export interface ActivityEntry {
+  verb: string;
+  repo: string;
+  at: string;
+}
+
 export interface UserPayload {
   user: GitHubUser;
   repos: GitHubRepo[];
   profileReadme: string | null;
   contributions: Contributions | null;
+  activity: ActivityEntry[];
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -47,4 +54,12 @@ export function fetchConnections(
   type: "followers" | "following",
 ): Promise<Connection[]> {
   return getJson(`/api/connections?login=${encodeURIComponent(login)}&type=${type}`);
+}
+
+export async function fetchRepoReadme(owner: string, repo: string): Promise<string> {
+  const res = await fetch(
+    `/api/repo-readme?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+  );
+  if (!res.ok) throw new Error("No README found for this repository.");
+  return res.text();
 }

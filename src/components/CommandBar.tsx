@@ -7,10 +7,12 @@ export default function CommandBar({
   onOpen,
   onBack,
   onRandom,
+  onMatrix,
 }: {
   onOpen: (login: string) => void;
   onBack: () => void;
   onRandom: () => void;
+  onMatrix: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -43,10 +45,20 @@ export default function CommandBar({
     const [cmd, ...rest] = value.trim().split(/\s+/);
     const arg = rest.join(" ");
     if ((cmd === "open" || cmd === "o") && arg) onOpen(arg);
-    else if (cmd === "back" || cmd === "b") onBack();
+    else if (cmd === "back" || cmd === "b" || cmd === "clear") onBack();
     else if (cmd === "random" || cmd === "r") onRandom();
-    else {
-      setHint("commands: open <user> · random · back");
+    else if (cmd === "matrix") onMatrix();
+    else if (cmd === "whoami") {
+      setHint("a curious dev poking at the GitHub API");
+      return;
+    } else if (cmd === "sudo") {
+      setHint("permission denied: nice try");
+      return;
+    } else if (cmd === "coffee") {
+      setHint("brewing... [====      ] please wait");
+      return;
+    } else {
+      setHint("commands: open <user> · random · matrix · clear · back");
       return;
     }
     close();

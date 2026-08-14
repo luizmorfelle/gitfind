@@ -33,11 +33,13 @@ export default function UserDetails({
   user,
   totalStars,
   topLanguage,
+  vibe,
   onConnections,
 }: {
   user: GitHubUser;
   totalStars: number;
   topLanguage: string | null;
+  vibe: string;
   onConnections: (type: "followers" | "following") => void;
 }) {
   const joined = new Date(user.created_at).toLocaleDateString(undefined, {
@@ -59,6 +61,12 @@ export default function UserDetails({
         <p className="text-xs text-muted">// profile</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
           <h2 className="text-2xl font-bold text-text">{user.name || user.login}</h2>
+          <span
+            title="a playful label derived from public stats"
+            className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] text-accent"
+          >
+            {vibe}
+          </span>
           {topLanguage && (
             <span className="rounded-full border border-accent-dim/40 px-2 py-0.5 text-[11px] text-accent">
               mostly {topLanguage}

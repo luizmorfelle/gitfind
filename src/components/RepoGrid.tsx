@@ -2,8 +2,10 @@
 import { useMemo, useState } from "react";
 import { GitHubRepo } from "../models/githubRepository";
 import { languageColor } from "../lib/languageColors";
+import RepoReadmePanel from "./RepoReadmePanel";
 
 type Sort = "updated" | "stars";
+type Tab = "all" | "sources" | "forks";
 
 function timeAgo(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -14,12 +16,22 @@ function timeAgo(iso: string): string {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-type Tab = "all" | "sources" | "forks";
-
-export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
+export default function RepoGrid({
+  repos,
+  owner,
+  languageFilter,
+  onClearLanguageFilter,
+}: {
+  repos: GitHubRepo[];
+  owner: string;
+  languageFilter: string | null;
+  onClearLanguageFilter: () => void;
+}) {
   const [sort, setSort] = useState<Sort>("updated");
   const [filter, setFilter] = useState("");
   const [tab, setTab] = useState<Tab>("all");
+  const [readmeRepo, setReadmeRepo] = useState<string | null>(null);
+  const [copied, setCopied] = useState<number | null>(null);
 
   const counts = useMemo(
     () => ({
@@ -35,21 +47,30 @@ export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
     let list = repos;
     if (tab === "sources") list = list.filter((r) => !r.fork);
     else if (tab === "forks") list = list.filter((r) => r.fork);
+    if (languageFilter) list = list.filter((r) => r.language === languageFilter);
     if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
     return [...list].sort((a, b) =>
       sort === "stars"
         ? b.stargazers_count - a.stargazers_count
         : new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     );
-  }, [repos, sort, filter, tab]);
+  }, [repos, sort, filter, tab, languageFilter]);
 
   if (repos.length === 0) {
     return <p className="mt-6 text-sm text-muted">› no public repositories</p>;
   }
 
+  function copyClone(repo: GitHubRepo) {
+    navigator.clipboard
+      ?.writeText(`git clone https://github.com/${owner}/${repo.name}.git`)
+      .then(() => {
+        setCopied(repo.id);
+        setTimeout(() => setCopied((c) => (c === repo.id ? null : c)), 1500);
+      }, () => undefined);
+  }
+
   return (
     <section className="mt-6">
-      {/* Tabs */}
       <div className="mb-3 flex items-center gap-1 border-b border-border text-xs">
         {(["all", "sources", "forks"] as const).map((t) => (
           <button
@@ -70,6 +91,18 @@ export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
         <p className="text-xs text-muted">
           showing <span className="text-text">{shown.length}</span>
         </p>
+        {languageFilter && (
+          <button
+            onClick={onClearLanguageFilter}
+            className="flex items-center gap-1.5 rounded-full border border-accent-dim px-2 py-0.5 text-xs text-accent"
+          >
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: languageColor(languageFilter) }}
+            />
+            {languageFilter} ✕
+          </button>
+        )}
         <input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -93,17 +126,29 @@ export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
 
       <div className="grid auto-rows-min gap-3 sm:grid-cols-2">
         {shown.map((repo) => (
-          <a
+          <div
             key={repo.id}
-            href={repo.html_url}
-            target="_blank"
-            rel="noopener noreferrer"
             className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3 transition-colors hover:border-accent-dim"
           >
-            <h3 className="truncate font-bold text-accent">
-              {repo.name}
-              {repo.fork && <span className="ml-2 text-xs font-normal text-muted">fork</span>}
-            </h3>
+            <div className="flex items-center justify-between gap-2">
+              <a
+                href={repo.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate font-bold text-accent hover:underline"
+              >
+                {repo.name}
+                {repo.fork && <span className="ml-2 text-xs font-normal text-muted">fork</span>}
+              </a>
+              <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted">
+                <button onClick={() => setReadmeRepo(repo.name)} className="hover:text-accent">
+                  readme
+                </button>
+                <button onClick={() => copyClone(repo)} className="hover:text-accent">
+                  {copied === repo.id ? "copied ✓" : "clone"}
+                </button>
+              </div>
+            </div>
             <p className="line-clamp-2 flex-1 font-sans text-sm text-muted">
               {repo.description || "No description"}
             </p>
@@ -133,9 +178,13 @@ export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
               <span>⑂ {repo.forks_count.toLocaleString()}</span>
               <span className="ml-auto">{timeAgo(repo.updated_at)}</span>
             </div>
-          </a>
+          </div>
         ))}
       </div>
+
+      {readmeRepo && (
+        <RepoReadmePanel owner={owner} repo={readmeRepo} onClose={() => setReadmeRepo(null)} />
+      )}
     </section>
   );
 }

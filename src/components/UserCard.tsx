@@ -7,11 +7,14 @@ import UserDetails from "./UserDetails";
 import ProfileReadme from "./ProfileReadme";
 import LanguageBar from "./LanguageBar";
 import ContributionGraph from "./ContributionGraph";
+import ContributionStats from "./ContributionStats";
+import ActivityFeed from "./ActivityFeed";
 import ConnectionsPanel from "./ConnectionsPanel";
 import ShareButton from "./ShareButton";
 import { GitHubRepo } from "../models/githubRepository";
 import { isFavorite, toggleFavorite } from "../lib/favorites";
 import { pushHistory } from "../lib/history";
+import { vibe } from "../lib/vibe";
 
 function totalStars(repos: GitHubRepo[]): number {
   return repos.reduce((sum, r) => sum + r.stargazers_count, 0);
@@ -46,8 +49,10 @@ export default function UserCard({
   const [error, setError] = useState("");
   const [connections, setConnections] = useState<"followers" | "following" | null>(null);
   const [pinned, setPinned] = useState(false);
+  const [langFilter, setLangFilter] = useState<string | null>(null);
 
   useEffect(() => setPinned(isFavorite(login)), [login]);
+  useEffect(() => setLangFilter(null), [login]);
 
   useEffect(() => {
     let active = true;
@@ -133,18 +138,30 @@ export default function UserCard({
                   user={data.user}
                   totalStars={totalStars(data.repos)}
                   topLanguage={topLanguage(data.repos)}
+                  vibe={vibe(data.user, data.repos)}
                   onConnections={setConnections}
                 />
               </div>
               <div className="flex shrink-0 flex-col gap-5 lg:w-[47%] xl:w-[520px]">
-                <LanguageBar repos={data.repos} />
-                {data.contributions && <ContributionGraph data={data.contributions} />}
+                <LanguageBar repos={data.repos} onSelect={setLangFilter} />
+                {data.contributions && (
+                  <div>
+                    <ContributionGraph data={data.contributions} />
+                    <ContributionStats data={data.contributions} />
+                  </div>
+                )}
+                <ActivityFeed activity={data.activity} />
               </div>
             </div>
             {data.profileReadme && (
               <ProfileReadme login={data.user.login} markdown={data.profileReadme} />
             )}
-            <RepoGrid repos={data.repos} />
+            <RepoGrid
+              repos={data.repos}
+              owner={data.user.login}
+              languageFilter={langFilter}
+              onClearLanguageFilter={() => setLangFilter(null)}
+            />
           </>
         )}
       </div>
