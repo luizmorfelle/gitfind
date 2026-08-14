@@ -1,147 +1,273 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { getCache, setCache } from "../lib/cache";
-import { getOctokit } from "../lib/github";
-import {
-  Avatar,
-  Button,
-  IconButton,
-  InputAdornment,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Paper,
-  Skeleton,
-  TextField,
-} from "@mui/material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faTimes } from "@fortawesome/free-solid-svg-icons";
-import { COLORS } from "../lib/colors";
-import { GitHubUser } from "../models/githubUser";
+import { searchUsers } from "../lib/api";
+import { getHistory, pushHistory, clearHistory, HistoryEntry } from "../lib/history";
+import { getFavorites, FavoriteEntry } from "../lib/favorites";
 import { GitHubUserSearch } from "../models/githubUserSearch";
+import RateMeter from "./RateMeter";
 
-export default function SearchBox({
-  onSelect,
-  onLoadingChange,
-}: {
-  onSelect: (user: GitHubUser) => void;
-  onLoadingChange: (loading: boolean) => void;
-}) {
+type Status = "idle" | "typing" | "loading" | "done" | "error";
+
+function compact(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k`;
+  return String(n);
+}
+
+export default function SearchBox({ onSelect }: { onSelect: (login: string) => void }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GitHubUserSearch[]>([]);
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState("");
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteEntry[]>([]);
+  const [active, setActive] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const searchSelectUser = async (username: string) => {
-    const octokit = getOctokit();
-    const response = await octokit.request("GET /users/{username}", {
-      username,
-    });
-    const user = response.data as GitHubUser;
-    setResults([]);
-    setQuery("");
-    onSelect(user);
-  };
+  useEffect(() => setHistory(getHistory()), []);
+  // Refresh favorites whenever the prompt returns to idle (e.g. after pinning).
+  useEffect(() => {
+    if (status === "idle") setFavorites(getFavorites());
+  }, [status]);
+
+  // "/" focuses the prompt from anywhere — terminal muscle memory.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "/" && document.activeElement !== inputRef.current) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
-    if (query.length < 3) {
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
       setResults([]);
+      setStatus(trimmed.length === 0 ? "idle" : "typing");
       return;
     }
 
-    const handler = setTimeout(async () => {
-      const cacheKey = `search:${query}`;
-      const cached = getCache(cacheKey);
-      if (cached) return setResults(cached);
+    const cacheKey = `search:${trimmed}`;
+    const cached = getCache<GitHubUserSearch[]>(cacheKey);
+    if (cached) {
+      setResults(cached);
+      setStatus("done");
+      return;
+    }
 
-      onLoadingChange(true);
-      const octokit = getOctokit();
-      const response = await octokit.request("GET /search/users", {
-        q: `${query} in:login`,
-        per_page: 10,
-      });
-      const data = response.data.items as GitHubUserSearch[];
-      setResults(data);
-      setCache(cacheKey, data);
-      onLoadingChange(false);
+    setStatus("loading");
+    const handler = setTimeout(async () => {
+      try {
+        const data = await searchUsers(trimmed);
+        setResults(data);
+        setStatus("done");
+        setCache(cacheKey, data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Search failed.");
+        setStatus("error");
+      }
     }, 500);
 
     return () => clearTimeout(handler);
   }, [query]);
 
+  // The currently-shown selectable list: search results, else recent history.
+  const items: HistoryEntry[] = useMemo(() => {
+    if (results.length > 0) {
+      return results.map((u) => ({ login: u.login, name: u.name, avatar_url: u.avatar_url }));
+    }
+    return status === "idle" ? history : [];
+  }, [results, status, history]);
+
+  useEffect(() => setActive(0), [items]);
+
+  function select(entry: HistoryEntry) {
+    setHistory(pushHistory(entry));
+    onSelect(entry.login);
+  }
+
+  function onInputKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => Math.min(a + 1, items.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => Math.max(a - 1, 0));
+    } else if (e.key === "Enter") {
+      if (items[active]) select(items[active]);
+    } else if (e.key === "Escape") {
+      setQuery("");
+    }
+  }
+
   return (
-    <div className="">
-      <div className="sm:relative absolute w-full p-4">
-        <TextField
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar usuário (min 3 caracteres)"
-          variant="filled"
-          size="small"
-          fullWidth
-          slotProps={{
-            input: {
-              disableUnderline: true,
-              startAdornment: (
-                <InputAdornment position="start">
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    style={{ color: COLORS.primary }}
-                  />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setQuery("")}>
-                    <FontAwesomeIcon
-                      icon={faTimes}
-                      style={{ color: COLORS.primary }}
-                    />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{
-            input: { color: "white" },
-            "& .MuiOutlinedInput-root": {},
-          }}
-        />
+    <section className="flex h-full flex-col overflow-hidden border-border bg-surface font-mono text-[13px] sm:border-r">
+      {/* Terminal title bar */}
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
+        <span className="ml-1 text-[11px] text-muted">gitfind — zsh</span>
       </div>
 
-      <Paper
-        className=" sm:h-full overflow-y-auto overflow-x-hidden sm:relative absolute sm:top-0 top-16 px-4 w-full"
-        style={{ background: COLORS.bg }}
-        elevation={0}
+      {/* Prompt */}
+      <div
+        className="flex cursor-text items-center gap-1.5 border-b border-border px-3 py-2.5"
+        onClick={() => inputRef.current?.focus()}
       >
-        <List>
-          {results.map((u) => (
-            <ListItem
-              key={u.id}
-              onClick={() => searchSelectUser(u.login ?? "")}
-              className="hover:bg-zinc-700 bg-[#2E3240] rounded-lg m-1 text-white font-bold"
-              style={{ cursor: "pointer" }}
-            >
-              <ListItemAvatar>
-                <Avatar src={u.avatar_url ?? ""} alt={u.login ?? ""} />
-              </ListItemAvatar>
-              <ListItemText
-                primary={u.login}
-                secondary={u.html_url}
-                sx={{
-                  "& .MuiListItemText-primary": {
-                    color: COLORS.text,
-                    fontWeight: 600,
-                  },
-                  "& .MuiListItemText-secondary": {
-                    color: COLORS.text,
-                    fontSize: "0.85rem",
-                  },
+        <span className="shrink-0 select-none font-bold text-accent">❯</span>
+        <input
+          ref={inputRef}
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={onInputKeyDown}
+          placeholder="find a user…  ( / )"
+          spellCheck={false}
+          className="w-full bg-transparent text-text caret-accent outline-none placeholder:text-muted"
+        />
+        {query.length === 0 && (
+          <span className="cursor-blink -ml-1 h-4 w-[7px] shrink-0 bg-accent" aria-hidden />
+        )}
+      </div>
+
+      {/* Output */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+        {status === "typing" && <p className="px-1 text-muted">need ≥ 3 characters</p>}
+        {status === "loading" && (
+          <p className="px-1 text-muted">
+            searching<span className="cursor-blink">_</span>
+          </p>
+        )}
+        {status === "error" && <p className="px-1 text-[#ff7b72]">! {error}</p>}
+        {status === "done" && results.length === 0 && (
+          <p className="px-1 text-muted">no matches for “{query.trim()}”</p>
+        )}
+
+        {/* Search results */}
+        {results.length > 0 && (
+          <ul className="flex flex-col">
+            {results.map((u, i) => (
+              <li key={u.login}>
+                <button
+                  onClick={() =>
+                    select({ login: u.login, name: u.name, avatar_url: u.avatar_url })
+                  }
+                  onMouseEnter={() => setActive(i)}
+                  className={`group flex w-full items-center gap-2.5 rounded px-1.5 py-1.5 text-left ${
+                    i === active ? "bg-surface-2" : ""
+                  }`}
+                >
+                  <Image
+                    src={u.avatar_url}
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="rounded-full border border-border"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block truncate ${i === active ? "text-accent" : "text-text"}`}
+                    >
+                      {u.login}
+                    </span>
+                    {u.name && (
+                      <span className="block truncate text-[11px] text-muted">{u.name}</span>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-[11px] text-muted">{compact(u.followers)} ★</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Pinned favorites (shown when the prompt is empty) */}
+        {status === "idle" && favorites.length > 0 && (
+          <div className="mb-2">
+            <span className="block px-1.5 pb-1 pt-1 text-[11px] uppercase tracking-wider text-muted">
+              pinned
+            </span>
+            <ul className="flex flex-col">
+              {favorites.map((f) => (
+                <li key={f.login}>
+                  <button
+                    onClick={() => select(f)}
+                    className="group flex w-full items-center gap-2.5 rounded px-1.5 py-1.5 text-left hover:bg-surface-2"
+                  >
+                    <span className="text-accent">★</span>
+                    <Image
+                      src={f.avatar_url}
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="rounded-full border border-border"
+                    />
+                    <span className="truncate text-text group-hover:text-accent">{f.login}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* History (shown when the prompt is empty) */}
+        {status === "idle" && history.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between px-1.5 pb-1 pt-1">
+              <span className="text-[11px] uppercase tracking-wider text-muted">history</span>
+              <button
+                onClick={() => {
+                  clearHistory();
+                  setHistory([]);
                 }}
-              />
-            </ListItem>
-          ))}
-        </List>
-      </Paper>
-    </div>
+                className="text-[11px] text-muted hover:text-[#ff7b72]"
+              >
+                clear
+              </button>
+            </div>
+            <ul className="flex flex-col">
+              {history.map((h, i) => (
+                <li key={h.login}>
+                  <button
+                    onClick={() => select(h)}
+                    onMouseEnter={() => setActive(i)}
+                    className={`group flex w-full items-center gap-2.5 rounded px-1.5 py-1.5 text-left ${
+                      i === active ? "bg-surface-2" : ""
+                    }`}
+                  >
+                    <span className={i === active ? "text-accent" : "text-muted"}>↺</span>
+                    <Image
+                      src={h.avatar_url}
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="rounded-full border border-border"
+                    />
+                    <span
+                      className={`truncate ${i === active ? "text-text" : "text-muted"}`}
+                    >
+                      {h.login}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Status line — tmux-style, always visible. */}
+      <footer className="flex items-center justify-between border-t border-border px-3 py-1.5 text-[11px] text-muted">
+        <span>
+          <span className="text-accent">◆</span> KneadyCode · 2026
+        </span>
+        <RateMeter />
+      </footer>
+    </section>
   );
 }

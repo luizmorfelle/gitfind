@@ -1,28 +1,83 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SearchBox from "../components/SearchBox";
 import UserCard from "../components/UserCard";
-import { GitHubUser } from "../models/githubUser";
+import EmptyState from "../components/EmptyState";
+import CompareView from "../components/CompareView";
+import CommandBar from "../components/CommandBar";
+import KeyboardHelp from "../components/KeyboardHelp";
+import { randomNotable } from "../lib/notableUsers";
 
+function paramsFromUrl(): { u: string | null; vs: string | null } {
+  const p = new URLSearchParams(window.location.search);
+  return { u: p.get("u"), vs: p.get("vs") };
+}
 
 export default function Page() {
-  const [selectedUser, setSelectedUser] = useState<GitHubUser>();
-  const [loading, setLoading] = useState(false);
+  const [login, setLogin] = useState<string | null>(null);
+  const [vs, setVs] = useState<string | null>(null);
+
+  useEffect(() => {
+    const sync = () => {
+      const { u, vs } = paramsFromUrl();
+      setLogin(u);
+      setVs(u ? vs : null);
+    };
+    sync();
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
+
+  const open = useCallback((next: string) => {
+    setLogin(next);
+    setVs(null);
+    window.history.pushState(null, "", `?u=${encodeURIComponent(next)}`);
+  }, []);
+
+  const compare = useCallback(
+    (other: string) => {
+      // vs needs a base user already open; otherwise just open the target.
+      if (!login) {
+        open(other);
+        return;
+      }
+      setVs(other);
+      window.history.pushState(
+        null,
+        "",
+        `?u=${encodeURIComponent(login)}&vs=${encodeURIComponent(other)}`,
+      );
+    },
+    [login, open],
+  );
+
+  const clear = useCallback(() => {
+    setLogin(null);
+    setVs(null);
+    window.history.pushState(null, "", window.location.pathname);
+  }, []);
 
   return (
-    <main className="min-h-screen max-h-screen h-screen flex flex-col sm:flex-row items-start justify-center bg-[#252A34]">
-      <div className="sm:w-1/3 w-full sm:h-full h-1/12">
-        <SearchBox onSelect={setSelectedUser} onLoadingChange={setLoading} />
+    <main className="flex h-screen flex-col sm:flex-row">
+      <div className="h-2/5 shrink-0 sm:h-full sm:w-64 lg:w-72">
+        <SearchBox onSelect={open} />
       </div>
-      <div className="sm:w-2/3 w-full sm:h-full h-11/12 sm:p-4 p-0">
-        {loading ? (
-          <p className="p-6">Carregando...</p>
-        ) : selectedUser ? (
-          <UserCard user={selectedUser} />
+      <div className="min-h-0 flex-1">
+        {login && vs ? (
+          <CompareView a={login} b={vs} onClose={clear} />
+        ) : login ? (
+          <UserCard login={login} onClose={clear} onOpen={open} />
         ) : (
-          <p className="p-6">Selecione um usuário...</p>
+          <EmptyState onSurprise={() => open(randomNotable())} />
         )}
       </div>
+      <CommandBar
+        onOpen={open}
+        onVs={compare}
+        onBack={clear}
+        onRandom={() => open(randomNotable())}
+      />
+      <KeyboardHelp />
     </main>
   );
 }
