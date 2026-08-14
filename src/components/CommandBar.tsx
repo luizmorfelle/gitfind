@@ -5,12 +5,10 @@ import { useEffect, useRef, useState } from "react";
 // or back. Keeps the whole app drivable without leaving the keyboard.
 export default function CommandBar({
   onOpen,
-  onVs,
   onBack,
   onRandom,
 }: {
   onOpen: (login: string) => void;
-  onVs: (login: string) => void;
   onBack: () => void;
   onRandom: () => void;
 }) {
@@ -45,11 +43,10 @@ export default function CommandBar({
     const [cmd, ...rest] = value.trim().split(/\s+/);
     const arg = rest.join(" ");
     if ((cmd === "open" || cmd === "o") && arg) onOpen(arg);
-    else if (cmd === "vs" && arg) onVs(arg);
     else if (cmd === "back" || cmd === "b") onBack();
     else if (cmd === "random" || cmd === "r") onRandom();
     else {
-      setHint("commands: open <user> · vs <user> · random · back");
+      setHint("commands: open <user> · random · back");
       return;
     }
     close();
@@ -70,7 +67,7 @@ export default function CommandBar({
             else if (e.key === "Escape") close();
           }}
           onBlur={close}
-          placeholder="open <user> · vs <user> · random · back"
+          placeholder="open <user> · random · back"
           spellCheck={false}
           className="w-full bg-transparent text-text caret-accent outline-none placeholder:text-muted"
         />

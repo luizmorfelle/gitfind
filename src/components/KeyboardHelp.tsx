@@ -8,7 +8,7 @@ const SHORTCUTS: [string, string][] = [
   ["esc", "clear / close"],
   [":", "command mode"],
   [":open <user>", "open a user"],
-  [":vs <user>", "compare users"],
+  [":random", "surprise me"],
   ["?", "this help"],
 ];
 

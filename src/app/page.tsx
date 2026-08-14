@@ -3,80 +3,74 @@ import { useCallback, useEffect, useState } from "react";
 import SearchBox from "../components/SearchBox";
 import UserCard from "../components/UserCard";
 import EmptyState from "../components/EmptyState";
-import CompareView from "../components/CompareView";
 import CommandBar from "../components/CommandBar";
 import KeyboardHelp from "../components/KeyboardHelp";
 import { randomNotable } from "../lib/notableUsers";
 
-function paramsFromUrl(): { u: string | null; vs: string | null } {
-  const p = new URLSearchParams(window.location.search);
-  return { u: p.get("u"), vs: p.get("vs") };
+function loginFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get("u");
 }
 
 export default function Page() {
   const [login, setLogin] = useState<string | null>(null);
-  const [vs, setVs] = useState<string | null>(null);
+  const [mobileSearch, setMobileSearch] = useState(false);
 
   useEffect(() => {
-    const sync = () => {
-      const { u, vs } = paramsFromUrl();
-      setLogin(u);
-      setVs(u ? vs : null);
-    };
-    sync();
-    window.addEventListener("popstate", sync);
-    return () => window.removeEventListener("popstate", sync);
+    setLogin(loginFromUrl());
+    const onPop = () => setLogin(loginFromUrl());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
   const open = useCallback((next: string) => {
     setLogin(next);
-    setVs(null);
+    setMobileSearch(false);
     window.history.pushState(null, "", `?u=${encodeURIComponent(next)}`);
   }, []);
 
-  const compare = useCallback(
-    (other: string) => {
-      // vs needs a base user already open; otherwise just open the target.
-      if (!login) {
-        open(other);
-        return;
-      }
-      setVs(other);
-      window.history.pushState(
-        null,
-        "",
-        `?u=${encodeURIComponent(login)}&vs=${encodeURIComponent(other)}`,
-      );
-    },
-    [login, open],
-  );
-
   const clear = useCallback(() => {
     setLogin(null);
-    setVs(null);
     window.history.pushState(null, "", window.location.pathname);
   }, []);
 
   return (
-    <main className="flex h-screen flex-col sm:flex-row">
-      <div className="h-2/5 shrink-0 sm:h-full sm:w-64 lg:w-72">
+    <main className="relative flex h-screen flex-col sm:flex-row">
+      {/* Desktop sidebar */}
+      <aside className="hidden shrink-0 sm:block sm:h-full sm:w-64 lg:w-72">
         <SearchBox onSelect={open} />
-      </div>
+      </aside>
+
+      {/* Content */}
       <div className="min-h-0 flex-1">
-        {login && vs ? (
-          <CompareView a={login} b={vs} onClose={clear} />
-        ) : login ? (
-          <UserCard login={login} onClose={clear} onOpen={open} onCompare={compare} />
+        {login ? (
+          <UserCard login={login} onClose={clear} onOpen={open} />
         ) : (
           <EmptyState onSurprise={() => open(randomNotable())} />
         )}
       </div>
-      <CommandBar
-        onOpen={open}
-        onVs={compare}
-        onBack={clear}
-        onRandom={() => open(randomNotable())}
-      />
+
+      {/* Mobile: floating trigger that opens search, then gets out of the way */}
+      <button
+        onClick={() => setMobileSearch(true)}
+        className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-accent-dim bg-surface px-5 py-2.5 font-mono text-sm text-accent shadow-lg sm:hidden"
+      >
+        <span aria-hidden>❯</span> search a user
+      </button>
+
+      {/* Mobile: full-screen search drawer */}
+      {mobileSearch && (
+        <div className="fixed inset-0 z-40 sm:hidden">
+          <SearchBox onSelect={open} />
+          <button
+            onClick={() => setMobileSearch(false)}
+            className="fixed right-3 top-2.5 z-50 font-mono text-sm text-muted hover:text-accent"
+          >
+            esc ✕
+          </button>
+        </div>
+      )}
+
+      <CommandBar onOpen={open} onBack={clear} onRandom={() => open(randomNotable())} />
       <KeyboardHelp />
     </main>
   );

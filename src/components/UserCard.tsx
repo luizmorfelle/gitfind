@@ -37,18 +37,15 @@ export default function UserCard({
   login,
   onClose,
   onOpen,
-  onCompare,
 }: {
   login: string;
   onClose: () => void;
   onOpen: (login: string) => void;
-  onCompare: (login: string) => void;
 }) {
   const [data, setData] = useState<UserPayload | null>(null);
   const [error, setError] = useState("");
   const [connections, setConnections] = useState<"followers" | "following" | null>(null);
   const [pinned, setPinned] = useState(false);
-  const [vsInput, setVsInput] = useState<string | null>(null);
 
   useEffect(() => setPinned(isFavorite(login)), [login]);
 
@@ -98,28 +95,6 @@ export default function UserCard({
         <span className="truncate text-muted">~/{login}</span>
         {data && (
           <div className="ml-auto flex items-center gap-4">
-            {vsInput === null ? (
-              <button
-                onClick={() => setVsInput("")}
-                className="text-muted transition-colors hover:text-accent"
-              >
-                ⚔ vs
-              </button>
-            ) : (
-              <input
-                autoFocus
-                value={vsInput}
-                onChange={(e) => setVsInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && vsInput.trim()) onCompare(vsInput.trim());
-                  else if (e.key === "Escape") setVsInput(null);
-                }}
-                onBlur={() => setVsInput(null)}
-                placeholder="compare with…"
-                spellCheck={false}
-                className="w-36 rounded border border-accent-dim bg-surface px-2 py-1 text-text caret-accent outline-none placeholder:text-muted"
-              />
-            )}
             <button
               onClick={() => {
                 toggleFavorite({
@@ -152,14 +127,20 @@ export default function UserCard({
           </p>
         ) : (
           <>
-            <UserDetails
-              user={data.user}
-              totalStars={totalStars(data.repos)}
-              topLanguage={topLanguage(data.repos)}
-              onConnections={setConnections}
-            />
-            <LanguageBar repos={data.repos} />
-            {data.contributions && <ContributionGraph data={data.contributions} />}
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+              <div className="min-w-0 lg:flex-1">
+                <UserDetails
+                  user={data.user}
+                  totalStars={totalStars(data.repos)}
+                  topLanguage={topLanguage(data.repos)}
+                  onConnections={setConnections}
+                />
+              </div>
+              <div className="flex shrink-0 flex-col gap-5 lg:w-[47%] xl:w-[520px]">
+                <LanguageBar repos={data.repos} />
+                {data.contributions && <ContributionGraph data={data.contributions} />}
+              </div>
+            </div>
             {data.profileReadme && (
               <ProfileReadme login={data.user.login} markdown={data.profileReadme} />
             )}

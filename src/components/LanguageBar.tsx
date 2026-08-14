@@ -12,7 +12,7 @@ export default function LanguageBar({ repos }: { repos: GitHubRepo[] }) {
   const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
 
   return (
-    <section className="mt-5">
+    <section>
       <p className="mb-2 text-xs text-muted">languages</p>
       <div className="flex h-2 overflow-hidden rounded-full">
         {sorted.map(([lang, count]) => (

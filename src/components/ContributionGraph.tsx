@@ -4,7 +4,7 @@ import { Contributions } from "../lib/api";
 // animation hints at, now backed by the user's actual commit history.
 export default function ContributionGraph({ data }: { data: Contributions }) {
   return (
-    <section className="mt-6">
+    <section>
       <p className="mb-2 text-xs text-muted">
         contributions <span className="text-text">({data.total.toLocaleString()} this year)</span>
       </p>

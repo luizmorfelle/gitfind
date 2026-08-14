@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Inter, Press_Start_2P } from "next/font/google";
 import "./globals.css";
-import GridBackground from "../components/GridBackground";
+import ContributionCanvas from "../components/ContributionCanvas";
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains",
@@ -34,7 +34,11 @@ export default function RootLayout({
       <body
         className={`${jetbrainsMono.variable} ${inter.variable} ${pressStart.variable} antialiased`}
       >
-        <GridBackground />
+        <ContributionCanvas
+          className="fixed inset-0 -z-10 h-full w-full"
+          opacity={0.07}
+          fps={12}
+        />
         {children}
       </body>
     </html>
