@@ -9,6 +9,8 @@ import LanguageBar from "./LanguageBar";
 import ContributionGraph from "./ContributionGraph";
 import ContributionStats from "./ContributionStats";
 import ActivityFeed from "./ActivityFeed";
+import AchievementBadges from "./AchievementBadges";
+import TopRepos from "./TopRepos";
 import ConnectionsPanel from "./ConnectionsPanel";
 import ShareButton from "./ShareButton";
 import { GitHubRepo } from "../models/githubRepository";
@@ -133,13 +135,18 @@ export default function UserCard({
         ) : (
           <>
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="min-w-0 lg:flex-1">
+              <div className="flex min-w-0 flex-col gap-6 lg:flex-1">
                 <UserDetails
                   user={data.user}
                   totalStars={totalStars(data.repos)}
                   topLanguage={topLanguage(data.repos)}
                   vibe={vibe(data.user, data.repos)}
                   onConnections={setConnections}
+                />
+                <AchievementBadges
+                  user={data.user}
+                  repos={data.repos}
+                  contributions={data.contributions}
                 />
               </div>
               <div className="flex shrink-0 flex-col gap-5 lg:w-[47%] xl:w-[520px]">
@@ -152,7 +159,7 @@ export default function UserCard({
                 )}
               </div>
             </div>
-            <ActivityFeed activity={data.activity} />
+            <TopRepos repos={data.repos} />
             {data.profileReadme && (
               <ProfileReadme login={data.user.login} markdown={data.profileReadme} />
             )}
@@ -162,6 +169,7 @@ export default function UserCard({
               languageFilter={langFilter}
               onClearLanguageFilter={() => setLangFilter(null)}
             />
+            <ActivityFeed activity={data.activity} />
           </>
         )}
       </div>
