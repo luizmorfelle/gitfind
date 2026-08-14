@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { getCache, setCache } from "../lib/cache";
 import { searchUsers } from "../lib/api";
-import { getHistory, pushHistory, clearHistory, HistoryEntry } from "../lib/history";
+import { getHistory, clearHistory, HistoryEntry } from "../lib/history";
 import { getFavorites, FavoriteEntry } from "../lib/favorites";
 import { GitHubUserSearch } from "../models/githubUserSearch";
 import RateMeter from "./RateMeter";
@@ -25,10 +25,22 @@ export default function SearchBox({ onSelect }: { onSelect: (login: string) => v
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => setHistory(getHistory()), []);
-  // Refresh favorites whenever the prompt returns to idle (e.g. after pinning).
+  // Keep history + pinned in sync live: on mount, whenever the store changes
+  // (pin/open from anywhere), and when the prompt returns to idle.
   useEffect(() => {
-    if (status === "idle") setFavorites(getFavorites());
+    const refresh = () => {
+      setHistory(getHistory());
+      setFavorites(getFavorites());
+    };
+    refresh();
+    window.addEventListener("gitfind:store", refresh);
+    return () => window.removeEventListener("gitfind:store", refresh);
+  }, []);
+  useEffect(() => {
+    if (status === "idle") {
+      setHistory(getHistory());
+      setFavorites(getFavorites());
+    }
   }, [status]);
 
   // "/" focuses the prompt from anywhere — terminal muscle memory.
@@ -92,7 +104,8 @@ export default function SearchBox({ onSelect }: { onSelect: (login: string) => v
   useEffect(() => setActive(0), [items]);
 
   function select(entry: HistoryEntry) {
-    setHistory(pushHistory(entry));
+    // History is recorded centrally in UserCard on load, so every entry point
+    // (search, command, deep link, connections) shows up — not just this one.
     onSelect(entry.login);
   }
 

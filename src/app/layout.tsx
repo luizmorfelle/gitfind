@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Inter, Press_Start_2P } from "next/font/google";
 import "./globals.css";
+import GridBackground from "../components/GridBackground";
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains",
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body
         className={`${jetbrainsMono.variable} ${inter.variable} ${pressStart.variable} antialiased`}
       >
+        <GridBackground />
         {children}
       </body>
     </html>

@@ -21,9 +21,11 @@ export function getHistory(): HistoryEntry[] {
 export function pushHistory(entry: HistoryEntry): HistoryEntry[] {
   const next = [entry, ...getHistory().filter((e) => e.login !== entry.login)].slice(0, MAX);
   localStorage.setItem(KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("gitfind:store"));
   return next;
 }
 
 export function clearHistory(): void {
   localStorage.removeItem(KEY);
+  window.dispatchEvent(new Event("gitfind:store"));
 }

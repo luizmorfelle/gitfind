@@ -14,19 +14,34 @@ function timeAgo(iso: string): string {
   return `${Math.floor(days / 365)}y ago`;
 }
 
+type Tab = "all" | "sources" | "forks";
+
 export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
   const [sort, setSort] = useState<Sort>("updated");
   const [filter, setFilter] = useState("");
+  const [tab, setTab] = useState<Tab>("all");
+
+  const counts = useMemo(
+    () => ({
+      all: repos.length,
+      sources: repos.filter((r) => !r.fork).length,
+      forks: repos.filter((r) => r.fork).length,
+    }),
+    [repos],
+  );
 
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    const list = q ? repos.filter((r) => r.name.toLowerCase().includes(q)) : repos;
+    let list = repos;
+    if (tab === "sources") list = list.filter((r) => !r.fork);
+    else if (tab === "forks") list = list.filter((r) => r.fork);
+    if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
     return [...list].sort((a, b) =>
       sort === "stars"
         ? b.stargazers_count - a.stargazers_count
         : new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     );
-  }, [repos, sort, filter]);
+  }, [repos, sort, filter, tab]);
 
   if (repos.length === 0) {
     return <p className="mt-6 text-sm text-muted">› no public repositories</p>;
@@ -34,9 +49,26 @@ export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
 
   return (
     <section className="mt-6">
+      {/* Tabs */}
+      <div className="mb-3 flex items-center gap-1 border-b border-border text-xs">
+        {(["all", "sources", "forks"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-3 py-2 ${
+              tab === t
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-text"
+            }`}
+          >
+            {t} <span className="opacity-60">{counts[t]}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="text-xs text-muted">
-          ~/repos <span className="text-text">({shown.length})</span>
+          showing <span className="text-text">{shown.length}</span>
         </p>
         <input
           value={filter}
@@ -51,9 +83,7 @@ export default function RepoGrid({ repos }: { repos: GitHubRepo[] }) {
             <button
               key={s}
               onClick={() => setSort(s)}
-              className={
-                sort === s ? "text-accent" : "text-muted hover:text-text"
-              }
+              className={sort === s ? "text-accent" : "text-muted hover:text-text"}
             >
               {s}
             </button>

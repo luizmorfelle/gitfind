@@ -66,7 +66,7 @@ export default function Page() {
         {login && vs ? (
           <CompareView a={login} b={vs} onClose={clear} />
         ) : login ? (
-          <UserCard login={login} onClose={clear} onOpen={open} />
+          <UserCard login={login} onClose={clear} onOpen={open} onCompare={compare} />
         ) : (
           <EmptyState onSurprise={() => open(randomNotable())} />
         )}

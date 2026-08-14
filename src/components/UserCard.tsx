@@ -11,6 +11,7 @@ import ConnectionsPanel from "./ConnectionsPanel";
 import ShareButton from "./ShareButton";
 import { GitHubRepo } from "../models/githubRepository";
 import { isFavorite, toggleFavorite } from "../lib/favorites";
+import { pushHistory } from "../lib/history";
 
 function totalStars(repos: GitHubRepo[]): number {
   return repos.reduce((sum, r) => sum + r.stargazers_count, 0);
@@ -36,15 +37,18 @@ export default function UserCard({
   login,
   onClose,
   onOpen,
+  onCompare,
 }: {
   login: string;
   onClose: () => void;
   onOpen: (login: string) => void;
+  onCompare: (login: string) => void;
 }) {
   const [data, setData] = useState<UserPayload | null>(null);
   const [error, setError] = useState("");
   const [connections, setConnections] = useState<"followers" | "following" | null>(null);
   const [pinned, setPinned] = useState(false);
+  const [vsInput, setVsInput] = useState<string | null>(null);
 
   useEffect(() => setPinned(isFavorite(login)), [login]);
 
@@ -53,10 +57,15 @@ export default function UserCard({
     setData(null);
     setError("");
 
+    // Record every viewed user in history, regardless of how it was opened.
+    const remember = (p: UserPayload) =>
+      pushHistory({ login: p.user.login, name: p.user.name, avatar_url: p.user.avatar_url });
+
     const cacheKey = `user:${login}`;
     const cached = getCache<UserPayload>(cacheKey);
     if (cached) {
       setData(cached);
+      remember(cached);
       return;
     }
 
@@ -65,6 +74,7 @@ export default function UserCard({
         if (!active) return;
         setData(payload);
         setCache(cacheKey, payload);
+        remember(payload);
       })
       .catch((e) => {
         if (active) setError(e instanceof Error ? e.message : "Failed to load user.");
@@ -88,6 +98,28 @@ export default function UserCard({
         <span className="truncate text-muted">~/{login}</span>
         {data && (
           <div className="ml-auto flex items-center gap-4">
+            {vsInput === null ? (
+              <button
+                onClick={() => setVsInput("")}
+                className="text-muted transition-colors hover:text-accent"
+              >
+                ⚔ vs
+              </button>
+            ) : (
+              <input
+                autoFocus
+                value={vsInput}
+                onChange={(e) => setVsInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && vsInput.trim()) onCompare(vsInput.trim());
+                  else if (e.key === "Escape") setVsInput(null);
+                }}
+                onBlur={() => setVsInput(null)}
+                placeholder="compare with…"
+                spellCheck={false}
+                className="w-36 rounded border border-accent-dim bg-surface px-2 py-1 text-text caret-accent outline-none placeholder:text-muted"
+              />
+            )}
             <button
               onClick={() => {
                 toggleFavorite({

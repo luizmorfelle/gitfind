@@ -3,11 +3,29 @@
 import Image from "next/image";
 import { GitHubUser } from "../models/githubUser";
 
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <span className="text-muted">
-      <span className="font-bold text-text">{value.toLocaleString()}</span> {label}
-    </span>
+function StatTile({
+  label,
+  value,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  onClick?: () => void;
+}) {
+  const inner = (
+    <>
+      <span className="text-lg font-bold text-text tabular-nums">{value.toLocaleString()}</span>
+      <span className="text-[11px] uppercase tracking-wider text-muted">{label}</span>
+    </>
+  );
+  const cls =
+    "flex min-w-[84px] flex-col rounded-lg border border-border bg-surface px-3 py-2 text-left";
+  return onClick ? (
+    <button onClick={onClick} className={`${cls} transition-colors hover:border-accent-dim`}>
+      {inner}
+    </button>
+  ) : (
+    <div className={cls}>{inner}</div>
   );
 }
 
@@ -28,18 +46,25 @@ export default function UserDetails({
   });
 
   return (
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-start">
+    <header className="flex flex-col gap-6 sm:flex-row sm:items-start">
       <Image
         src={user.avatar_url}
         alt={user.login}
-        width={96}
-        height={96}
+        width={132}
+        height={132}
         priority
-        className="h-24 w-24 rounded-lg border border-border"
+        className="h-28 w-28 shrink-0 rounded-xl border border-border shadow-[0_0_0_4px_var(--color-surface)] sm:h-32 sm:w-32"
       />
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted">// profile</p>
-        <h2 className="mt-1 text-2xl font-bold text-text">{user.name || user.login}</h2>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h2 className="text-2xl font-bold text-text">{user.name || user.login}</h2>
+          {topLanguage && (
+            <span className="rounded-full border border-accent-dim/40 px-2 py-0.5 text-[11px] text-accent">
+              mostly {topLanguage}
+            </span>
+          )}
+        </div>
         <a
           href={user.html_url}
           target="_blank"
@@ -55,28 +80,22 @@ export default function UserDetails({
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-          <button onClick={() => onConnections("followers")} className="hover:text-accent">
-            <Stat label="followers" value={user.followers} />
-          </button>
-          <button onClick={() => onConnections("following")} className="hover:text-accent">
-            <Stat label="following" value={user.following} />
-          </button>
-          <Stat label="repos" value={user.public_repos} />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <StatTile
+            label="followers"
+            value={user.followers}
+            onClick={() => onConnections("followers")}
+          />
+          <StatTile
+            label="following"
+            value={user.following}
+            onClick={() => onConnections("following")}
+          />
+          <StatTile label="repos" value={user.public_repos} />
+          <StatTile label="stars" value={totalStars} />
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs text-text">
-            ★ {totalStars.toLocaleString()} earned
-          </span>
-          {topLanguage && (
-            <span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs text-text">
-              mostly {topLanguage}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
           {user.location && <span>◆ {user.location}</span>}
           {user.company && <span>⌂ {user.company}</span>}
           {user.twitter_username && <span>✦ @{user.twitter_username}</span>}

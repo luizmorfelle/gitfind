@@ -27,5 +27,6 @@ export function toggleFavorite(entry: FavoriteEntry): FavoriteEntry[] {
     ? current.filter((f) => f.login !== entry.login)
     : [entry, ...current];
   localStorage.setItem(KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("gitfind:store"));
   return next;
 }

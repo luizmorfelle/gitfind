@@ -82,7 +82,11 @@ export default function EmptyState({ onSurprise }: { onSurprise: () => void }) {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 h-full w-full opacity-40"
+        aria-hidden
+      />
       <BootLog />
       <div
         className="absolute inset-0"
@@ -100,9 +104,17 @@ export default function EmptyState({ onSurprise }: { onSurprise: () => void }) {
         </p>
         <button
           onClick={onSurprise}
-          className="mt-2 rounded-md border border-border bg-surface/70 px-4 py-2 font-mono text-sm text-muted transition-colors hover:border-accent-dim hover:text-accent"
+          className="mt-2 inline-flex items-center gap-2 rounded-md border border-border bg-surface/70 px-4 py-2 font-mono text-sm text-muted transition-colors hover:border-accent-dim hover:text-accent"
         >
-          🎲 surprise me
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <rect x="3" y="3" width="18" height="18" rx="4" />
+            <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+            <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+            <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+            <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+          </svg>
+          surprise me
         </button>
       </div>
     </div>
