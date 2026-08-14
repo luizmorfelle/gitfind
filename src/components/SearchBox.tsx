@@ -60,19 +60,25 @@ export default function SearchBox({ onSelect }: { onSelect: (login: string) => v
     }
 
     setStatus("loading");
+    let active = true;
     const handler = setTimeout(async () => {
       try {
         const data = await searchUsers(trimmed);
+        if (!active) return; // a newer query superseded this one
         setResults(data);
         setStatus("done");
         setCache(cacheKey, data);
       } catch (e) {
+        if (!active) return;
         setError(e instanceof Error ? e.message : "Search failed.");
         setStatus("error");
       }
     }, 500);
 
-    return () => clearTimeout(handler);
+    return () => {
+      active = false;
+      clearTimeout(handler);
+    };
   }, [query]);
 
   // The currently-shown selectable list: search results, else recent history.

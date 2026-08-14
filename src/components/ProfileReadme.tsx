@@ -17,6 +17,8 @@ export default function ProfileReadme({
   const blobBase = `https://github.com/${login}/${login}/blob/HEAD/`;
 
   const resolveUrl = (url: string, key: string): string => {
+    // Defense in depth: never emit a dangerous scheme even if sanitize changes.
+    if (/^\s*(javascript|vbscript|file):/i.test(url)) return "#";
     if (/^(https?:|mailto:|#|data:)/.test(url)) return url;
     const path = url.replace(/^\.?\//, "");
     return (key === "src" ? rawBase : blobBase) + path;

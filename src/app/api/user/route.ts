@@ -73,6 +73,8 @@ export async function GET(req: NextRequest) {
     const octokit = getOctokit();
     const [userRes, reposRes, profileReadme, contributions] = await Promise.all([
       octokit.request("GET /users/{username}", { username: login }),
+      // ponytail: first 100 repos only; totalStars/topLanguage/LanguageBar are
+      // computed over this page, so heavy accounts under-report. Paginate if it matters.
       octokit.request("GET /users/{username}/repos", {
         username: login,
         sort: "updated",
