@@ -92,3 +92,7 @@ src/
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+JetBrains Mono, bundled under `src/app/api/og/fonts/` so the social card
+renders in a real monospace, is licensed separately under the SIL Open Font
+License 1.1 — see [OFL.txt](src/app/api/og/fonts/OFL.txt).
