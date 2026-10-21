@@ -2,6 +2,9 @@ import { Contributions } from "../lib/api";
 
 // The real GitHub contribution calendar — same greens the empty-state
 // animation hints at, now backed by the user's actual commit history.
+// GitHub's API always returns light-theme colors, so a day with no
+// contributions comes back as #ebedf0 and reads as a white square against
+// this dark UI. Empty days use the surface token instead.
 export default function ContributionGraph({ data }: { data: Contributions }) {
   return (
     <section>
@@ -17,7 +20,7 @@ export default function ContributionGraph({ data }: { data: Contributions }) {
                   key={day.date}
                   title={`${day.count} on ${day.date}`}
                   className="h-[11px] w-[11px] rounded-[2px]"
-                  style={{ backgroundColor: day.color }}
+                  style={{ backgroundColor: day.count ? day.color : "var(--color-surface)" }}
                 />
               ))}
             </div>

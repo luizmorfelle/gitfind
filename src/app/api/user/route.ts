@@ -42,7 +42,8 @@ type ContribGraph = {
   };
 };
 
-// GitHub returns the real theme color per day, so we reuse its palette as-is.
+// GitHub returns light-theme colors per day; ContributionGraph remaps the
+// empty ones for the dark UI.
 async function fetchContributions(octokit: Octo, login: string) {
   try {
     const data = await octokit.graphql<ContribGraph>(CONTRIB_QUERY, { login });
