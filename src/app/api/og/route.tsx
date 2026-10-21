@@ -10,6 +10,80 @@ type OgUser = {
   public_repos: number;
 };
 
+// Satori renders with Noto Sans and has no canvas, so the rain is built from
+// plain spans using the ASCII half of MatrixRain's glyph set — katakana would
+// come out as tofu boxes. Deterministic per login: the same card every time.
+const CHARS = "0123456789<>[]{}/\\|=+*#$@ABCDEF";
+const COLUMNS = 46;
+const COLUMN_WIDTH = 1200 / COLUMNS;
+const LINE_HEIGHT = 26;
+
+function seedFrom(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+// mulberry32 — tiny seeded PRNG, enough to place glyphs reproducibly.
+function rng(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function MatrixBackdrop({ seed }: { seed: string }) {
+  const rand = rng(seedFrom(seed));
+  const columns = Array.from({ length: COLUMNS }, (_, i) => {
+    const length = 8 + Math.floor(rand() * 14);
+    const top = Math.floor(rand() * 760) - LINE_HEIGHT * length * 0.8;
+    const glyphs = Array.from({ length }, () => CHARS[Math.floor(rand() * CHARS.length)]);
+    return { i, top, glyphs };
+  });
+
+  return (
+    <div style={{ display: "flex", position: "absolute", top: 0, left: 0, width: 1200, height: 630 }}>
+      {columns.map(({ i, top, glyphs }) => (
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            position: "absolute",
+            left: i * COLUMN_WIDTH,
+            top,
+          }}
+        >
+          {glyphs.map((char, g) => {
+            // Head of the trail is brightest; the tail fades into the background.
+            const depth = (g + 1) / glyphs.length;
+            return (
+              <span
+                key={g}
+                style={{
+                  fontSize: 20,
+                  lineHeight: `${LINE_HEIGHT}px`,
+                  color: g === glyphs.length - 1 ? "#b9f6ca" : "#39d353",
+                  opacity: 0.14 + depth * 0.62,
+                }}
+              >
+                {char}
+              </span>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export async function GET(req: NextRequest) {
   const login = req.nextUrl.searchParams.get("u")?.trim();
   let user: OgUser | null = null;
@@ -42,8 +116,23 @@ export async function GET(req: NextRequest) {
           background: "#0d1117",
           padding: 64,
           fontFamily: "monospace",
+          position: "relative",
         }}
       >
+        <MatrixBackdrop seed={login || "gitfind"} />
+        {/* Scrim so the rain never fights the text for contrast. */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 1200,
+            height: 630,
+            background:
+              "linear-gradient(90deg, rgba(13,17,23,0.9) 0%, rgba(13,17,23,0.74) 50%, rgba(13,17,23,0.3) 100%)",
+          }}
+        />
         <div style={{ display: "flex", color: green, fontSize: 34, fontWeight: 700 }}>
           gitfind ~ %
         </div>
