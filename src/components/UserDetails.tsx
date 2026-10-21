@@ -58,7 +58,7 @@ export default function UserDetails({
         className="h-28 w-28 shrink-0 rounded-xl border border-border shadow-[0_0_0_4px_var(--color-surface)] sm:h-32 sm:w-32"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-muted">// profile</p>
+        <p className="text-xs text-muted">{"// profile"}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
           <h2 className="text-2xl font-bold text-text">{user.name || user.login}</h2>
           <span
